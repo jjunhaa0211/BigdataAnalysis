@@ -28,9 +28,13 @@ import bs4
 
 # last_url = soure.find_all("td", class_="pgPR")[0].find_all("a")[0]["href"]
 # print(last_url)
+
+last_url = source.find_all("td", class_="pgPR")[0].find_all("a")[0]["href"]
+
+last_page = last_url.split('&page=')[-1]
+
 date_list = []
 prices_list = []
-
 
 for page_on in range(1, last_page+1):
     page_url = f"https://finance.naver.com/sise/sise_index_time.naver?code=KPI200&thistime=20230113185900&page={page_n}"
