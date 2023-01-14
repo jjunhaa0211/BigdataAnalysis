@@ -6,6 +6,10 @@ page_url = f"https://finance.naver.com/sise/sise_index_time.naver?code=KPI200&th
 
 soure = requests.get(page_url).text
 
+print(requests.get(page_url))
+
+# print(bs4.BeautifulSoup(soure))
+
 
 
 # print(bs4.BeautifulSoup(soure.find('td', class_='')))
