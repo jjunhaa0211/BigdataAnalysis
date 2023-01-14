@@ -8,16 +8,14 @@ soure = requests.get(page_url).text
 
 print(requests.get(page_url))
 
-# print(bs4.BeautifulSoup(soure))
-
-
+print(bs4.BeautifulSoup(soure))
 
 # print(bs4.BeautifulSoup(soure.find('td', class_='')))
 
-# print(soure.find_all('td'))
+print(soure.find_all('td'))
 
 # print(soure.find_all('td', class_ = 'number_1'))
 
-# print(requests.get(page_url))
+print(requests.get(page_url))
 
-# print(page_url)
+print(page_url)
