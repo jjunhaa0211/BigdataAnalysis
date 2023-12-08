@@ -1,0 +1,169 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib import font_manager, rc
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+import time
+import csv
+import os
+from collections import Counter
+import re
+
+# 브라우저 꺼짐 방지
+chrome_options = Options()
+chrome_options.add_experimental_option("detach", True)
+
+# 불필요한 에러 메시지 없애기
+chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+# 브라우저 생성
+browser = webdriver.Chrome(options=chrome_options)
+
+# 웹 사이트 열기
+browser.get('https://www.naver.com')
+
+# 쇼핑 메뉴 클릭하기
+browser.find_element(By.CSS_SELECTOR, ".service_icon.type_shopping").click()
+time.sleep(2)
+
+# 새창을 바라보게 만들기
+new_window = browser.window_handles[1]
+browser.switch_to.window(new_window)
+
+# 화면 최대화 해야지 검색창이 보임
+browser.maximize_window()
+
+# 검색창 클릭
+search = browser.find_element(By.CSS_SELECTOR, "input._searchInput_search_text_3CUDs")
+search.click()
+
+# 검색어 입력
+product_name = "패딩"
+
+search.send_keys(product_name)
+search.send_keys(Keys.ENTER)
+
+# 스크롤 전 높이
+before_h = browser.execute_script("return window.scrollY")
+
+# 무한 스크롤
+while True:
+    # 맨 아래로 스크롤 내린다.
+    browser.find_element(By.CSS_SELECTOR, "body").send_keys(Keys.END)
+
+    # 스크롤 사이 페이지 로딩 시간
+    time.sleep(1)
+
+    # 스크롤 후 높이
+    after_h = browser.execute_script("return window.scrollY")
+    if after_h == before_h:
+        break
+    before_h = after_h
+
+# 데스크톱 경로 지정
+desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
+
+# CSV 파일 경로 지정
+csv_file_path = os.path.join(desktop_path, 'data.csv')
+
+# 파일 생성
+f = open(csv_file_path, 'w', encoding='CP949', newline='')
+csvWriter = csv.writer(f)
+
+# 상품 정보 div
+items = browser.find_elements(By.CSS_SELECTOR, ".product_item__MDtDF")
+
+# 헤더 추가
+csvWriter.writerow(["Product Name", "Price", "Link"])
+
+# 리스트 초기화
+product_data = []
+
+# 각 상품 정보를 CSV 파일에 쓰기
+for item in items:
+    name = item.find_element(By.CSS_SELECTOR, ".product_title__Mmw2K").text
+    try:
+        price = item.find_element(By.CSS_SELECTOR, ".price_num__S2p_v").text
+    except:
+        price = "판매중단"
+    link = item.find_element(By.CSS_SELECTOR, ".product_title__Mmw2K > a").get_attribute('href')
+    print(name, price, link)
+    csvWriter.writerow([name, price, link])
+
+    product_data.append({"Product Name": name, "Price": price, "Link": link})
+
+# 파일 닫기
+f.close()
+
+# DataFrame 생성
+# df = pd.DataFrame(product_data)
+
+# 최저가 순으로 정렬
+# df = df.sort_values(by='Price')
+
+# 폰트 설정
+rc('font', family='AppleGothic')
+plt.rcParams['axes.unicode_minus'] = False
+
+# # 그래프 생성
+# plt.figure(figsize=(10, 6))
+#
+# # 가격이 낮은 순으로 정렬하여 그래프 생성
+# bars = plt.bar(*zip(*sorted(zip(df['Product Name'], df['Price']), key=lambda x: x[1])))
+#
+# plt.title(product_name + '상품별 최저가 그래프', fontsize=16)
+# plt.xlabel('상품명', fontsize=12)
+# plt.ylabel('최저가', fontsize=12)
+# plt.xticks(rotation=45, ha='right', fontsize=6)  # 텍스트 크기 작게 조정
+# plt.yticks(fontsize=10)
+#
+# # 가격 레이블 추가
+# for bar in bars:
+#     plt.text(bar.get_x() + bar.get_width() / 2 - 0.1, bar.get_height() + 5000, f'{bar.get_height():,.0f}',
+#              fontsize=8, color='black')  # 텍스트 크기 작게 조정
+#
+# plt.tight_layout()
+# plt.show()
+
+# 그래프 생성
+# plt.figure(figsize=(10, 6))
+#
+# # 가격이 높은 순으로 정렬하여 그래프 생성
+# bars = plt.bar(*zip(*sorted(zip(df['Product Name'], df['Price']), key=lambda x: x[1], reverse=True)))
+#
+# plt.title(product_name + '상품별 최고가 그래프', fontsize=16)
+# plt.xlabel('상품명', fontsize=12)
+# plt.ylabel('최고가', fontsize=12)
+# plt.xticks(rotation=45, ha='right', fontsize=6)
+# plt.yticks(fontsize=10)
+#
+# # 가격 레이블 추가
+# for bar in bars:
+#     plt.text(bar.get_x() + bar.get_width() / 2 - 0.1, bar.get_height() + 5000, f'{bar.get_height():,.0f}',
+#              fontsize=8, color='black')
+#
+# plt.tight_layout()
+# plt.show()
+
+# DataFrame 생성
+df = pd.DataFrame(product_data)
+
+# Clean 'Price' column by removing non-numeric characters and converting to numeric
+df['Price'] = df['Price'].replace('[^\d.]', '', regex=True).astype(float)
+
+# Calculate the median price
+median_price = df['Price'].median()
+
+# Select three products closest to the median
+closest_products = df.iloc[(df['Price'] - median_price).abs().argsort()[:3]]
+
+# Display the cleaned 'Price' column
+print(df['Price'])
+
+# Create a pie chart
+plt.figure(figsize=(8, 8))
+plt.pie(closest_products['Price'], labels=closest_products['Product Name'], autopct='%1.1f%%', startangle=90, counterclock=False)
+plt.title('중간가에 가장 가까운 3개 상품의 가격 비율', fontsize=16)
+plt.show()
